@@ -12,6 +12,7 @@ greenlet==3.1.1          # для asyncpg
 # auth & security
 python-jose[cryptography]==3.3.0  # для JWT
 passlib[bcrypt]==1.7.4            # для хеширования паролей
+bcrypt==4.1.2
 python-multipart==0.0.20          # для обработки form data (логин)
 
 # validation & settings
@@ -27,3 +28,6 @@ pytest==8.3.4
 pytest-asyncio==0.24.0
 httpx==0.28.1
 pytest-cov==6.0.0
+
+redis==5.0.1
+celery==5.3.6

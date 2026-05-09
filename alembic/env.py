@@ -21,7 +21,7 @@ if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
 from app.core.database import Base
-from app.models import User  # Импортируем модель, чтобы Alembic её увидел
+from app.models import User, ItemList, ListItem, Friend  # Импортируем модель, чтобы Alembic её увидел
 
 target_metadata = Base.metadata
 # for 'autogenerate' support
