@@ -6,6 +6,7 @@ from app.models.user import User
 from app.schemas.user import UserResponse, UserUpdate
 from app.api.v1.endpoints.auth import get_current_user
 from app.services.user_service import UserService
+from app.core.permissions import require_admin  # <-- ИМПОРТ
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -27,7 +28,7 @@ async def update_current_user(
     """Обновить профиль текущего пользователя."""
     service = UserService(db)
     try:
-        return await service.update_user(current_user.id, user_data)
+        return await service.update_user(current_user.id, user_data, current_user)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -62,3 +63,42 @@ async def get_user_by_id(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
+
+
+# ============= АДМИНСКИЕ МЕТОДЫ =============
+
+@router.put("/{user_id}/role", response_model=UserResponse)
+async def change_user_role(
+    user_id: int,
+    new_role: str,  # "admin", "user", "guest"
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)  # <-- ТОЛЬКО АДМИН
+):
+    """
+    Изменить роль пользователя.
+    Только для администратора.
+    """
+    from app.schemas.user import UserRoleEnum, UserUpdate
+    service = UserService(db)
+    try:
+        update_data = UserUpdate(role=UserRoleEnum(new_role))
+        return await service.update_user(user_id, update_data, current_user)
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.get("/admin/all", response_model=list[UserResponse])
+async def get_all_users(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_admin)  # <-- ТОЛЬКО АДМИН
+):
+    """
+    Получить всех пользователей.
+    Только для администратора.
+    """
+    from sqlalchemy import select
+    result = await db.execute(select(User))
+    return result.scalars().all()

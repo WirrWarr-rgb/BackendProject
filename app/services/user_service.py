@@ -2,8 +2,9 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
-from app.models.user import User
-from app.schemas.user import UserUpdate
+from app.models.user import User, UserRole
+from app.schemas.user import UserUpdate, UserRoleEnum
+
 
 class UserService:
     """Сервис для работы с пользователями"""
@@ -21,10 +22,16 @@ class UserService:
             raise ValueError("User not found")
         return user
     
-    async def update_user(self, user_id: int, user_data: UserUpdate) -> User:
+    async def update_user(
+        self, 
+        user_id: int, 
+        user_data: UserUpdate,
+        current_user: User  # <-- ДОБАВЛЯЕМ текущего пользователя
+    ) -> User:
         """
         Обновить профиль пользователя.
         Проверяет уникальность username и email.
+        Только админ может менять роль.
         """
         user = await self.get_user_by_id(user_id)
         
@@ -47,6 +54,12 @@ class UserService:
             if existing_user and existing_user.id != user_id:
                 raise ValueError("Email already registered")
             user.email = user_data.email
+        
+        # Проверяем и обновляем роль (ТОЛЬКО АДМИН может менять роль)
+        if user_data.role is not None:
+            if current_user.role != UserRole.ADMIN:
+                raise ValueError("Only admin can change user role")
+            user.role = UserRole(user_data.role.value)
         
         await self.db.commit()
         await self.db.refresh(user)

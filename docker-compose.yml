@@ -6,7 +6,7 @@ services:
     container_name: decido_postgres
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: 'n8cePEPE=_pw&a%terb~\uM27$UB7'
+      POSTGRES_PASSWORD: n8cePEPE=_pw&a%terb~\uM27$$UB7
       POSTGRES_DB: decido_db
     ports:
       - "5432:5432"

@@ -34,8 +34,22 @@ async def get_my_lists(
     skip: int = 0,
     limit: int = 100
 ):
-    """Получить все списки текущего пользователя."""
+    """Получить списки. Админ видит все, пользователь — только свои."""
     service = ListService(db)
+    
+    # Админ видит все списки
+    if current_user.role.value == "admin":
+        # Добавим метод в ListService позже, пока так
+        from sqlalchemy import select
+        result = await db.execute(
+            select(ItemList)
+            .offset(skip)
+            .limit(limit)
+            .order_by(ItemList.created_at.desc())
+        )
+        return result.scalars().all()
+    
+    # Обычный пользователь видит только свои
     return await service.get_user_lists(current_user.id, skip, limit)
 
 
