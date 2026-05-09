@@ -1,15 +1,14 @@
-# Эндпоинты для авторизации
-
+# app/api/v1/endpoints/auth.py
 from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.database import get_db
-from app.core.security import get_password_hash, verify_password, create_access_token
-from app.schemas.user import UserCreate, UserResponse, Token
-from app.models.user import User
 from app.core.config import settings
+from app.schemas.user import UserCreate, Token
+from app.models.user import User
+from app.services.auth_service import AuthService
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -39,55 +38,32 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
     
-    # Ищем пользователя по email
-    result = await db.execute(
-        select(User).where(User.email == email)
-    )
-    user = result.scalar_one_or_none()
+    # Используем сервис для поиска пользователя
+    service = AuthService(db)
+    user = await service.get_user_by_email(email)
     
     if user is None:
         raise credentials_exception
     
     return user
 
+
 @router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Регистрация нового пользователя. Сразу возвращает JWT токен."""
-    # Проверяем, существует ли пользователь с таким email
-    existing_user = await db.execute(
-        select(User).where(User.email == user_data.email)
-    )
-    if existing_user.scalar_one_or_none():
+    service = AuthService(db)
+    try:
+        return await service.register(
+            username=user_data.username,
+            email=user_data.email,
+            password=user_data.password
+        )
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="User with this email already exists"
+            detail=str(e)
         )
-    
-    # Проверяем, существует ли пользователь с таким username
-    existing_username = await db.execute(
-        select(User).where(User.username == user_data.username)
-    )
-    if existing_username.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken"
-        )
-    
-    # Создаем пользователя
-    hashed_password = get_password_hash(user_data.password)
-    new_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        hashed_password=hashed_password
-    )
-    
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-    
-    # Автоматически создаем токен
-    access_token = create_access_token(data={"sub": new_user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.post("/login", response_model=Token)
 async def login(
@@ -96,20 +72,16 @@ async def login(
     db: AsyncSession = Depends(get_db)
 ):
     """Вход пользователя по email и паролю. Возвращает JWT токен."""
-    result = await db.execute(
-        select(User).where(User.email == email)
-    )
-    user = result.scalar_one_or_none()
-    
-    if not user or not verify_password(password, user.hashed_password):
+    service = AuthService(db)
+    try:
+        return await service.login(email=email, password=password)
+    except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail=str(e),
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": access_token, "token_type": "bearer"}
+
 
 @router.post("/logout", status_code=status.HTTP_200_OK)
 async def logout(
@@ -117,8 +89,6 @@ async def logout(
 ):
     """
     Выход из аккаунта.
-    В реальности JWT токены не могут быть "отозваны" на сервере без дополнительного хранилища.
-    Клиент должен просто удалить токен из своего хранилища.
-    Этот эндпоинт существует для удобства и логирования.
+    Клиент должен удалить токен на своей стороне.
     """
     return {"message": f"User {current_user.email} successfully logged out"}

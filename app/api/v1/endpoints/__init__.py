@@ -1,5 +1,6 @@
-from app.api.v1.endpoints.auth import router as auth_router
-from app.api.v1.endpoints.lists import router as lists_router
-from app.api.v1.endpoints.users import router as users_router
-from app.api.v1.endpoints.friends import router as friends_router
-from app.api.v1.endpoints.sessions import router as sessions_router
+from app.services.session_service import SessionService
+from app.services.session_list_service import SessionListService
+from app.services.auth_service import AuthService
+from app.services.user_service import UserService
+from app.services.friend_service import FriendService
+from app.services.list_service import ListService
