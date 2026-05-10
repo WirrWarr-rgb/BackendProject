@@ -62,12 +62,10 @@ class VotingDuration:
         Красивое отображение длительности.
         
         Returns:
-            "2 мин 30 сек" или "45 сек"
+            "2 мин 0 сек" или "45 сек"
         """
         if self.minutes_int > 0:
-            if self.remaining_seconds > 0:
-                return f"{self.minutes_int} мин {self.remaining_seconds} сек"
-            return f"{self.minutes_int} мин"
+            return f"{self.minutes_int} мин {self.remaining_seconds} сек"
         return f"{self.seconds} сек"
     
     def to_dict(self) -> dict:

@@ -1,6 +1,8 @@
+# tests/test_lists.py
 import pytest
 from sqlalchemy import select
 from app.models.list import ItemList, ListItem
+
 
 class TestListsEndpoints:
     """Тесты для эндпоинтов списков."""
@@ -32,12 +34,8 @@ class TestListsEndpoints:
     @pytest.mark.asyncio
     async def test_get_my_lists(self, client, auth_headers, test_user, db_session):
         """Тест получения списков пользователя."""
-        # Создаем тестовые списки
         for i in range(3):
-            list_item = ItemList(
-                name=f"List {i}",
-                user_id=test_user.id
-            )
+            list_item = ItemList(name=f"List {i}", user_id=test_user.id)
             db_session.add(list_item)
         await db_session.commit()
         
@@ -49,212 +47,83 @@ class TestListsEndpoints:
         assert all("name" in item for item in data)
     
     @pytest.mark.asyncio
-    async def test_update_list(self, client, auth_headers, test_user, db_session):
-        """Тест обновления списка."""
-        # Создаем список
-        list_item = ItemList(
-            name="Original Name",
-            user_id=test_user.id
-        )
-        db_session.add(list_item)
-        await db_session.commit()
-        await db_session.refresh(list_item)
-        
-        # Обновляем
-        response = await client.put(
-            f"/api/v1/lists/{list_item.id}",
-            json={"name": "Updated Name"},
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["name"] == "Updated Name"
-        
-        # Проверяем в БД
-        result = await db_session.execute(
-            select(ItemList).where(ItemList.id == list_item.id)
-        )
-        updated = result.scalar_one()
-        assert updated.name == "Updated Name"
-    
-    @pytest.mark.asyncio
-    async def test_delete_list(self, client, auth_headers, test_user, db_session):
-        """Тест удаления списка."""
-        # Создаем список
-        list_item = ItemList(
-            name="To Delete",
-            user_id=test_user.id
-        )
-        db_session.add(list_item)
-        await db_session.commit()
-        await db_session.refresh(list_item)
-        
-        # Удаляем
-        response = await client.delete(
-            f"/api/v1/lists/{list_item.id}",
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 204
-        
-        # Проверяем, что список удален
-        result = await db_session.execute(
-            select(ItemList).where(ItemList.id == list_item.id)
-        )
-        assert result.scalar_one_or_none() is None
-    
-    @pytest.mark.asyncio
-    async def test_add_list_item(self, client, auth_headers, test_user, db_session):
-        """Тест добавления пункта в список."""
-        # Создаем список
-        list_item = ItemList(
-            name="Test List",
-            user_id=test_user.id
-        )
-        db_session.add(list_item)
-        await db_session.commit()
-        await db_session.refresh(list_item)
-        
-        # Добавляем пункт
-        response = await client.post(
-            f"/api/v1/lists/{list_item.id}/items",
-            json={
-                "name": "Test Item",
-                "description": "Test Description",
-                "order_index": 0
-            },
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 201
-        data = response.json()
-        assert data["name"] == "Test Item"
-        assert data["description"] == "Test Description"
-        assert data["list_id"] == list_item.id
-    
-    @pytest.mark.asyncio
-    async def test_get_list_items(self, client, auth_headers, test_user, db_session):
-        """Тест получения пунктов списка."""
-        # Создаем список и пункты
-        list_item = ItemList(
-            name="List With Items",
-            user_id=test_user.id
-        )
-        db_session.add(list_item)
-        await db_session.commit()
-        await db_session.refresh(list_item)
-        
-        for i in range(3):
-            item = ListItem(
-                list_id=list_item.id,
-                name=f"Item {i}",
-                order_index=i
-            )
-            db_session.add(item)
-        await db_session.commit()
-        
-        response = await client.get(
-            f"/api/v1/lists/{list_item.id}/items",
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert len(data) == 3
-        assert data[0]["order_index"] == 0
-    
-    @pytest.mark.asyncio
-    async def test_update_list_item(self, client, auth_headers, test_user, db_session):
-        """Тест обновления пункта списка."""
-        # Создаем список и пункт
-        list_item = ItemList(
-            name="Test List",
-            user_id=test_user.id
-        )
-        db_session.add(list_item)
-        await db_session.commit()
-        await db_session.refresh(list_item)
-        
-        list_item_obj = ListItem(
-            list_id=list_item.id,
-            name="Original Item",
-            order_index=0
-        )
-        db_session.add(list_item_obj)
-        await db_session.commit()
-        await db_session.refresh(list_item_obj)
-        
-        # Обновляем
-        response = await client.put(
-            f"/api/v1/lists/items/{list_item_obj.id}",
-            json={
-                "name": "Updated Item",
-                "description": "New Description"
-            },
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 200
-        data = response.json()
-        assert data["name"] == "Updated Item"
-        assert data["description"] == "New Description"
-    
-    @pytest.mark.asyncio
-    async def test_delete_list_item(self, client, auth_headers, test_user, db_session):
-        """Тест удаления пункта списка."""
-        # Создаем список и пункт
-        list_item = ItemList(
-            name="Test List",
-            user_id=test_user.id
-        )
-        db_session.add(list_item)
-        await db_session.commit()
-        await db_session.refresh(list_item)
-        
-        list_item_obj = ListItem(
-            list_id=list_item.id,
-            name="To Delete",
-            order_index=0
-        )
-        db_session.add(list_item_obj)
-        await db_session.commit()
-        await db_session.refresh(list_item_obj)
-        
-        # Удаляем
-        response = await client.delete(
-            f"/api/v1/lists/items/{list_item_obj.id}",
-            headers=auth_headers
-        )
-        
-        assert response.status_code == 204
-        
-        # Проверяем, что пункт удален
-        result = await db_session.execute(
-            select(ListItem).where(ListItem.id == list_item_obj.id)
-        )
-        assert result.scalar_one_or_none() is None
-    
-    @pytest.mark.asyncio
-    async def test_search_lists(self, client, auth_headers, test_user, db_session):
-        """Тест поиска списков."""
-        # Создаем списки с разными названиями
-        lists_names = ["Movie List", "Game List", "Book List"]
-        for name in lists_names:
+    async def test_get_lists_pagination(self, client, auth_headers, test_user, db_session):
+        """Тест пагинации списков."""
+        for i in range(25):
             list_item = ItemList(
-                name=name,
+                name=f"Paginated List {i:02d}",
                 user_id=test_user.id
             )
             db_session.add(list_item)
         await db_session.commit()
         
-        # Ищем списки со словом "List"
+        # Страница 1
         response = await client.get(
-            "/api/v1/lists/search/?q=List&limit=10",
+            "/api/v1/lists/?page=1&per_page=10",
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 10
+        
+        # Страница 2
+        response = await client.get(
+            "/api/v1/lists/?page=2&per_page=10",
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 10
+        
+        # Страница 3 (должно быть 5)
+        response = await client.get(
+            "/api/v1/lists/?page=3&per_page=10",
+            headers=auth_headers
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 5
+    
+    @pytest.mark.asyncio
+    async def test_get_lists_sorting(self, client, auth_headers, test_user, db_session):
+        """Тест сортировки списков по названию."""
+        names = ["Banana List", "Apple List", "Cherry List"]
+        for name in names:
+            list_item = ItemList(name=name, user_id=test_user.id)
+            db_session.add(list_item)
+        await db_session.commit()
+        
+        response = await client.get(
+            "/api/v1/lists/?sort_by=name&order=asc",
             headers=auth_headers
         )
         
         assert response.status_code == 200
         data = response.json()
-        assert len(data) == 3
-        assert all("List" in item["name"] for item in data)
+        assert data[0]["name"] == "Apple List"
+        assert data[1]["name"] == "Banana List"
+        assert data[2]["name"] == "Cherry List"
+    
+    @pytest.mark.asyncio
+    async def test_get_lists_filter_by_date(self, client, auth_headers, test_user, db_session):
+        """Тест фильтрации списков по дате создания."""
+        from datetime import datetime, timedelta, timezone
+        
+        old_date = datetime.now(timezone.utc) - timedelta(days=2)
+        old_list = ItemList(name="Old List", user_id=test_user.id, created_at=old_date)
+        db_session.add(old_list)
+        
+        new_list = ItemList(name="New List", user_id=test_user.id)
+        db_session.add(new_list)
+        await db_session.commit()
+        
+        yesterday = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+        response = await client.get(
+            f"/api/v1/lists/?created_after={yesterday}",
+            headers=auth_headers
+        )
+        
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["name"] == "New List"

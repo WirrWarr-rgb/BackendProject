@@ -1,22 +1,21 @@
+# tests/conftest.py
 import pytest
 import pytest_asyncio
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.pool import NullPool
 from sqlalchemy import text
-from sqlalchemy import select
 from httpx import AsyncClient, ASGITransport
-import asyncio
+from unittest.mock import patch, AsyncMock, MagicMock
 
 from app.main import app
-from app.core.database import Base, get_db
+from app.core.database import Base
 from app.core.config import settings
 from app.core.security import get_password_hash
-from app.models.user import User
-from app.models.list import ItemList, ListItem
-TEST_DATABASE_URL = r"postgresql+asyncpg://postgres:n8cePEPE=_pw&a%terb~\uM27$UB7@localhost:5432/decido_test_db"
+from app.models.user import User, UserRole
 
-# Создаем тестовый движок
+TEST_DATABASE_URL = settings.DATABASE_URL
+
 test_engine = create_async_engine(
     TEST_DATABASE_URL,
     echo=False,
@@ -29,63 +28,67 @@ TestSessionLocal = async_sessionmaker(
     expire_on_commit=False
 )
 
-@pytest_asyncio.fixture(scope="session")
-async def test_db_setup():
-    """Создаем тестовую базу данных перед запуском тестов."""
-    # Создаем все таблицы
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
-    yield
-    
-    # Очищаем после тестов
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+
+@pytest.fixture(scope="session")
+def anyio_backend():
+    return "asyncio"
+
 
 @pytest_asyncio.fixture(scope="function")
 async def db_session():
-    """Фикстура для сессии базы данных с очисткой после каждого теста."""
-    # Создаем таблицы перед тестом
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    
+    """Очищает таблицы перед каждым тестом."""
     async with TestSessionLocal() as session:
-        # Очищаем все таблицы перед тестом - используем text()
-        await session.execute(text("TRUNCATE TABLE users CASCADE"))
-        await session.execute(text("TRUNCATE TABLE lists CASCADE"))
-        await session.execute(text("TRUNCATE TABLE list_items CASCADE"))
+        tables = [
+            "session_results", "session_participants",
+            "session_list_items", "session_lists",
+            "sessions", "list_items", "lists",
+            "friends", "users"
+        ]
+        for table in tables:
+            try:
+                await session.execute(text(f"TRUNCATE TABLE {table} CASCADE"))
+            except Exception:
+                pass
         await session.commit()
-        
         yield session
-    
-    # Очищаем после теста
-    async with test_engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+        await session.rollback()
+
 
 @pytest_asyncio.fixture
 async def client() -> AsyncGenerator[AsyncClient, None]:
-    """Фикстура для HTTP клиента."""
-    # Используем ASGITransport для FastAPI приложения
-    transport = ASGITransport(app=app)
-    async with AsyncClient(transport=transport, base_url="http://test") as ac:
-        yield ac
+    """HTTP клиент с полным моком SMTP."""
+    # Мокаем ВЕСЬ aiosmtplib.send на уровне модуля
+    with patch('aiosmtplib.send', new_callable=AsyncMock, return_value=None):
+        transport = ASGITransport(app=app)
+        async with AsyncClient(transport=transport, base_url="http://test") as ac:
+            yield ac
+
 
 @pytest.fixture
 def test_user_data():
-    """Тестовые данные пользователя."""
     return {
         "username": "testuser",
         "email": "test@example.com",
         "password": "testpassword123"
     }
 
+
+@pytest.fixture
+def test_admin_data():
+    return {
+        "username": "testadmin",
+        "email": "admin_test@example.com",
+        "password": "admin123456",
+    }
+
+
 @pytest_asyncio.fixture
 async def test_user(db_session, test_user_data):
-    """Создает тестового пользователя в БД."""
     user = User(
         username=test_user_data["username"],
         email=test_user_data["email"],
         hashed_password=get_password_hash(test_user_data["password"]),
+        role=UserRole.USER,
         is_active=True
     )
     db_session.add(user)
@@ -93,41 +96,55 @@ async def test_user(db_session, test_user_data):
     await db_session.refresh(user)
     return user
 
+
 @pytest_asyncio.fixture
-async def auth_token(client, test_user_data, db_session):
-    """Получает JWT токен для тестового пользователя."""
-    # Убедимся, что пользователь существует
-    from sqlalchemy import select
-    from app.models.user import User
-    
-    result = await db_session.execute(
-        select(User).where(User.email == test_user_data["email"])  # <-- Поиск по email
+async def test_admin(db_session, test_admin_data):
+    admin = User(
+        username=test_admin_data["username"],
+        email=test_admin_data["email"],
+        hashed_password=get_password_hash(test_admin_data["password"]),
+        role=UserRole.ADMIN,
+        is_active=True
     )
-    user = result.scalar_one_or_none()
-    
-    if not user:
-        user = User(
-            username=test_user_data["username"],
-            email=test_user_data["email"],
-            hashed_password=get_password_hash(test_user_data["password"]),
-            is_active=True
-        )
-        db_session.add(user)
-        await db_session.commit()
-    
+    db_session.add(admin)
+    await db_session.commit()
+    await db_session.refresh(admin)
+    return admin
+
+
+@pytest_asyncio.fixture
+async def auth_token(client, test_user, test_user_data):
     response = await client.post(
         "/api/v1/auth/login",
         data={
-            "email": test_user_data["email"],  # <-- Используем email
+            "email": test_user_data["email"],
             "password": test_user_data["password"]
         },
         headers={"Content-Type": "application/x-www-form-urlencoded"}
     )
-    
     data = response.json()
     return data.get("access_token")
 
+
+@pytest_asyncio.fixture
+async def admin_auth_token(client, test_admin, test_admin_data):
+    response = await client.post(
+        "/api/v1/auth/login",
+        data={
+            "email": test_admin_data["email"],
+            "password": test_admin_data["password"]
+        },
+        headers={"Content-Type": "application/x-www-form-urlencoded"}
+    )
+    data = response.json()
+    return data.get("access_token")
+
+
 @pytest_asyncio.fixture
 async def auth_headers(auth_token):
-    """Заголовки авторизации для запросов."""
     return {"Authorization": f"Bearer {auth_token}"}
+
+
+@pytest_asyncio.fixture
+async def admin_auth_headers(admin_auth_token):
+    return {"Authorization": f"Bearer {admin_auth_token}"}
