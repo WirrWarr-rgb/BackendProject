@@ -11,6 +11,16 @@ from app.schemas.list import (
 )
 from app.api.v1.endpoints.auth import get_current_user
 from app.services.list_service import ListService
+from app.schemas.common import PaginationParams
+from app.schemas.list import ListPaginatedResponse
+from sqlalchemy import func, desc, asc
+from datetime import datetime
+
+from app.api.v1.descriptions import (
+    LIST_GET_DESCRIPTION,
+    LIST_ITEM_GET_DESCRIPTION,
+    STATS_GET_DESCRIPTION
+)
 
 router = APIRouter(prefix="/lists", tags=["lists"])
 
@@ -27,30 +37,42 @@ async def create_list(
     return await service.create_list(current_user.id, list_data.name)
 
 
-@router.get("/", response_model=List[ListResponse])
+@router.get("/", response_model=List[ListResponse], description=LIST_GET_DESCRIPTION)
 async def get_my_lists(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    skip: int = 0,
-    limit: int = 100
+    page: int = 1,
+    per_page: int = 20,
+    sort_by: str = "created_at",
+    order: str = "desc",
+    search: str = None,
+    created_after: str = None,
+    created_before: str = None
 ):
-    """Получить списки. Админ видит все, пользователь — только свои."""
+    """Получить списки с пагинацией, сортировкой и фильтрацией."""
     service = ListService(db)
     
-    # Админ видит все списки
+    # Админ видит все, пользователь — свои
     if current_user.role.value == "admin":
-        # Добавим метод в ListService позже, пока так
-        from sqlalchemy import select
-        result = await db.execute(
-            select(ItemList)
-            .offset(skip)
-            .limit(limit)
-            .order_by(ItemList.created_at.desc())
-        )
-        return result.scalars().all()
+        user_id = None
+    else:
+        user_id = current_user.id
     
-    # Обычный пользователь видит только свои
-    return await service.get_user_lists(current_user.id, skip, limit)
+    # Конвертируем строковые даты в datetime
+    from datetime import datetime
+    ca = datetime.fromisoformat(created_after) if created_after else None
+    cb = datetime.fromisoformat(created_before) if created_before else None
+    
+    return await service.get_user_lists(
+        user_id=user_id,
+        page=page,
+        per_page=min(per_page, 100),  # Ограничение
+        sort_by=sort_by,
+        order=order,
+        search=search,
+        created_after=ca,
+        created_before=cb
+    )
 
 
 @router.get("/{list_id}", response_model=ListResponse)
@@ -136,7 +158,7 @@ async def create_list_item(
         )
 
 
-@router.get("/{list_id}/items", response_model=List[ListItemResponse])
+@router.get("/{list_id}/items", response_model=List[ListItemResponse], description=LIST_ITEM_GET_DESCRIPTION)
 async def get_list_items(
     list_id: int,
     db: AsyncSession = Depends(get_db),
@@ -251,7 +273,7 @@ async def search_list_items(
         )
 
 
-@router.get("/stats/", response_model=dict)
+@router.get("/stats/", response_model=dict, description=STATS_GET_DESCRIPTION)
 async def get_stats(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)

@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.schemas.user import UserCreate, Token
 from app.models.user import User
 from app.services.auth_service import AuthService
+from app.api.v1.descriptions import REGISTER_DESCRIPTION, LOGIN_DESCRIPTION
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -48,7 +49,7 @@ async def get_current_user(
     return user
 
 
-@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=Token, status_code=status.HTTP_201_CREATED, description=REGISTER_DESCRIPTION)
 async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
     """Регистрация нового пользователя. Сразу возвращает JWT токен."""
     service = AuthService(db)
@@ -65,7 +66,7 @@ async def register(user_data: UserCreate, db: AsyncSession = Depends(get_db)):
         )
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Token, description=LOGIN_DESCRIPTION)
 async def login(
     email: str = Form(...),
     password: str = Form(...),

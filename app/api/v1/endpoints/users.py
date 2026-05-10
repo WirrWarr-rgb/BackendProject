@@ -7,6 +7,7 @@ from app.schemas.user import UserResponse, UserUpdate
 from app.api.v1.endpoints.auth import get_current_user
 from app.services.user_service import UserService
 from app.core.permissions import require_admin  # <-- ИМПОРТ
+from app.api.v1.descriptions import USER_SEARCH_DESCRIPTION
 
 router = APIRouter(prefix="/users", tags=["users"])
 
@@ -36,7 +37,7 @@ async def update_current_user(
         )
 
 
-@router.get("/search/", response_model=list[UserResponse])
+@router.get("/search/", response_model=list[UserResponse], description=USER_SEARCH_DESCRIPTION)
 async def search_users(
     q: str,
     db: AsyncSession = Depends(get_db),

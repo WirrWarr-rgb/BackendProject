@@ -4,6 +4,9 @@ from sqlalchemy import select, update
 from typing import List, Optional, Dict
 from app.models.list import ItemList, ListItem
 from app.models.user import User
+from typing import Optional
+from sqlalchemy import func, desc, asc
+from datetime import datetime
 
 class ListService:
     """Сервис для работы со списками и пунктами"""
@@ -26,18 +29,46 @@ class ListService:
     
     async def get_user_lists(
         self, 
-        user_id: int, 
-        skip: int = 0, 
-        limit: int = 100
+        user_id: Optional[int] = None,
+        page: int = 1,
+        per_page: int = 20,
+        sort_by: Optional[str] = "created_at",
+        order: Optional[str] = "desc",
+        search: Optional[str] = None,
+        created_after: Optional[datetime] = None,
+        created_before: Optional[datetime] = None
     ) -> List[ItemList]:
-        """Получить все списки пользователя"""
-        result = await self.db.execute(
-            select(ItemList)
-            .where(ItemList.user_id == user_id)
-            .offset(skip)
-            .limit(limit)
-            .order_by(ItemList.created_at.desc())
-        )
+        """Получить списки с пагинацией, сортировкой и фильтрацией."""
+        
+        query = select(ItemList)
+        
+        if user_id is not None:
+            query = query.where(ItemList.user_id == user_id)
+        
+        if search:
+            query = query.where(ItemList.name.ilike(f"%{search}%"))
+        
+        if created_after:
+            query = query.where(ItemList.created_at >= created_after)
+        if created_before:
+            query = query.where(ItemList.created_at <= created_before)
+        
+        # Сортировка
+        if sort_by == "name":
+            sort_col = ItemList.name
+        else:
+            sort_col = ItemList.created_at
+        
+        if order == "asc":
+            query = query.order_by(asc(sort_col))
+        else:
+            query = query.order_by(desc(sort_col))
+        
+        # Пагинация
+        offset = (page - 1) * per_page
+        query = query.offset(offset).limit(per_page)
+        
+        result = await self.db.execute(query)
         return result.scalars().all()
     
     async def get_list_by_id(self, list_id: int, user_id: int) -> ItemList:

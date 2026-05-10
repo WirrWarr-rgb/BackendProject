@@ -10,6 +10,7 @@ from app.schemas.friend import (
 )
 from app.api.v1.endpoints.auth import get_current_user
 from app.services.friend_service import FriendService
+from app.api.v1.descriptions import FRIENDS_GET_DESCRIPTION
 
 router = APIRouter(prefix="/friends", tags=["friends"])
 
@@ -89,7 +90,7 @@ async def reject_friend_request(
         )
 
 
-@router.get("/", response_model=List[FriendResponse])
+@router.get("/", response_model=List[FriendResponse], description=FRIENDS_GET_DESCRIPTION)
 async def get_friends(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)

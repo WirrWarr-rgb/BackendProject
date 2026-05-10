@@ -19,13 +19,14 @@ from app.schemas.session import (
     ItemsOrderUpdate, InviteToLobbyRequest
 )
 from app.websocket.manager import manager
+from app.api.v1.descriptions import SESSIONS_MY_DESCRIPTION, CREATE_LOBBY_DESCRIPTION
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 
 
 # ============= Лобби =============
 
-@router.post("/", response_model=LobbyResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/", response_model=LobbyResponse, status_code=status.HTTP_201_CREATED, description=CREATE_LOBBY_DESCRIPTION)
 async def create_lobby(
     request: CreateLobbyRequest,
     db: AsyncSession = Depends(get_db),
@@ -72,7 +73,7 @@ async def create_lobby(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.get("/my", response_model=MyLobbiesResponse)
+@router.get("/my", response_model=MyLobbiesResponse, description=SESSIONS_MY_DESCRIPTION)
 async def get_my_lobbies(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user)

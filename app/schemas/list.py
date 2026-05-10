@@ -1,6 +1,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional
 from datetime import datetime
+from app.schemas.common import PaginatedResponse
 
 class ListBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=100)
@@ -49,3 +50,7 @@ class ListItemResponse(ListItemBase):
 class BulkOrderUpdate(BaseModel):
     """Схема для массового обновления порядка пунктов"""
     items: list[dict]  # [{"id": 1, "order_index": 0}, {"id": 2, "order_index": 1}]
+
+class ListPaginatedResponse(PaginatedResponse[ListResponse]):
+    """Пагинированный ответ со списками"""
+    pass
