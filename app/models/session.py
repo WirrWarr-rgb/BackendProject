@@ -7,6 +7,8 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 import enum
+from sqlalchemy.orm import composite
+from app.models.value_objects import VotingDuration
 
 
 class SessionStatus(str, enum.Enum):
@@ -48,7 +50,9 @@ class Session(Base):
     
     list_locked = Column(Boolean, default=False)
     
-    voting_duration = Column(Integer, default=120)
+    # Value Object: храним секунды, работаем через VotingDuration
+    voting_duration_seconds = Column("voting_duration", Integer, default=120)
+    voting_duration = composite(VotingDuration, voting_duration_seconds)
     
     # Таймер готовности (когда заканчивается)
     countdown_ends_at = Column(DateTime(timezone=True), nullable=True)

@@ -40,7 +40,7 @@ class SessionService:
             owner_id=owner_id,
             mode=mode,
             status=SessionStatus.WAITING,
-            voting_duration=voting_duration
+            voting_duration_seconds=voting_duration
         )
         self.db.add(session)
         await self.db.flush()
@@ -668,7 +668,7 @@ class SessionService:
         
         session.status = SessionStatus.VOTING
         session.started_at = now
-        session.voting_ends_at = now + timedelta(seconds=session.voting_duration)
+        session.voting_ends_at = now + timedelta(seconds=session.voting_duration.seconds)
         session.countdown_ends_at = None  # Сбрасываем таймер готовности
         
         await self.db.commit()
@@ -802,7 +802,11 @@ class SessionService:
             "list_locked": session.list_locked,
             "current_list": list_data,
             "participants": participants,
-            "voting_duration": session.voting_duration,
+            "voting_duration": {
+                "seconds": session.voting_duration.seconds,
+                "minutes": session.voting_duration.minutes,
+                "formatted": session.voting_duration.to_formatted_string()
+            },
             "countdown_ends_at": session.countdown_ends_at,
             "voting_ends_at": session.voting_ends_at,
             "created_at": session.created_at,
