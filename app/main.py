@@ -8,6 +8,9 @@ from app.api.v1 import router as v1_router
 # Импорты WebSocket обработчиков
 from app.api.v1.endpoints.sessions_ws import sessions_websocket
 from app.api.v1.endpoints.global_ws import global_websocket
+from app.events.registry import init_events
+
+init_events()
 
 app = FastAPI(
     title="Decido API",
