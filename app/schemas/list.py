@@ -84,3 +84,36 @@ class PaginatedResponse(BaseModel, Generic[T]):
 class ListPaginatedResponse(PaginatedResponse[ListResponse]):
     """Пагинированный ответ со списками"""
     pass
+
+class ListGenerateRequest(BaseModel):
+    """Схема запроса на генерацию списка через AI"""
+    prompt: str = Field(
+        ..., 
+        min_length=10, 
+        max_length=500,
+        description="Описание желаемого списка (например: 'Хочу список из 10 хоррор фильмов')"
+    )
+    items_count: int = Field(
+        10, 
+        ge=3, 
+        le=30, 
+        description="Количество пунктов в списке (3-30)"
+    )
+
+
+class ListGenerateResponse(BaseModel):
+    """Схема ответа на запрос генерации"""
+    status: str = Field(description="Статус задачи")
+    task_id: int = Field(description="ID задачи для отслеживания")
+    message: str = Field(description="Сообщение пользователю")
+
+
+class TaskStatusResponse(BaseModel):
+    """Схема для проверки статуса задачи"""
+    task_id: int
+    status: str
+    prompt: str
+    list_id: Optional[int] = None
+    error_message: Optional[str] = None
+    created_at: datetime
+    completed_at: Optional[datetime] = None

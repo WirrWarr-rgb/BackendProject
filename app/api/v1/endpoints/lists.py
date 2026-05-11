@@ -19,6 +19,9 @@ from typing import Annotated
 from fastapi_filter import FilterDepends
 from fastapi_pagination import Page
 from app.filters.list_filters import ItemListFilter
+from app.services.ai_list_service import AIListService
+from app.schemas.list import ListGenerateRequest, ListGenerateResponse, TaskStatusResponse
+from app.tasks.ai_tasks import generate_list_task
 
 from app.api.v1.descriptions import (
     LIST_GET_DESCRIPTION,
@@ -280,3 +283,86 @@ async def copy_list(
             else status.HTTP_404_NOT_FOUND,
             detail=str(e)
         )
+
+# ============= AI-генерация списка =============
+
+@router.post("/generate", response_model=ListGenerateResponse,
+    summary="Сгенерировать список через AI",
+    description="""
+    Запускает асинхронную генерацию списка через LLM (OpenRouter).
+    
+    Примеры запросов:
+    - "Хочу список из 10 хоррор фильмов"
+    - "Составь список книг по Python для начинающих"
+    - "Подборка ресторанов Москвы с паназиатской кухней"
+    
+    Задача выполняется в фоне. Статус можно проверить через GET /lists/generate/{task_id}/status
+    """)
+async def generate_list(
+    request: ListGenerateRequest,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    Запустить AI-генерацию списка.
+    
+    - **prompt**: текстовое описание желаемого списка (минимум 10 символов)
+    - **items_count**: количество пунктов (от 3 до 30)
+    """
+    service = AIListService(db)
+    
+    try:
+        # Создаём задачу в БД
+        task = await service.create_task(
+            user_id=current_user.id,
+            prompt=request.prompt,
+            items_count=request.items_count
+        )
+        
+        # Отправляем в Celery очередь
+        generate_list_task.delay(
+            task_id=task.id,
+            user_id=current_user.id,
+            prompt=request.prompt,
+            items_count=request.items_count
+        )
+        
+        return ListGenerateResponse(
+            status="processing",
+            task_id=task.id,
+            message=f"Генерация списка началась. Проверьте статус: GET /lists/generate/{task.id}/status"
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/generate/{task_id}/status", response_model=TaskStatusResponse,
+    summary="Проверить статус генерации списка")
+async def check_generation_status(
+    task_id: int,
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+):
+    """
+    Проверить статус задачи генерации списка.
+    
+    Возможные статусы:
+    - **pending**: задача в очереди
+    - **processing**: LLM генерирует список
+    - **completed**: список создан (содержит list_id)
+    - **failed**: ошибка генерации (содержит error_message)
+    """
+    service = AIListService(db)
+    try:
+        task = await service.get_task(task_id, current_user.id)
+        return TaskStatusResponse(
+            task_id=task.id,
+            status=task.status.value,
+            prompt=task.prompt,
+            list_id=task.list_id,
+            error_message=task.error_message,
+            created_at=task.created_at,
+            completed_at=task.completed_at
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
