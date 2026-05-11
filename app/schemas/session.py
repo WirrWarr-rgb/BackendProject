@@ -3,6 +3,7 @@ from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from enum import Enum
+from pydantic import ConfigDict
 
 
 # ============= Enums =============
@@ -132,8 +133,7 @@ class SessionListItemResponse(BaseModel):
     created_by: Optional[int] = None
     creator_name: Optional[str] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class SessionListResponse(BaseModel):
@@ -144,8 +144,7 @@ class SessionListResponse(BaseModel):
     items: List[SessionListItemResponse]
     created_at: datetime
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class ParticipantResponse(BaseModel):
@@ -159,8 +158,7 @@ class ParticipantResponse(BaseModel):
     invited_at: datetime
     joined_at: Optional[datetime] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class LobbyResponse(BaseModel):
@@ -185,8 +183,7 @@ class LobbyResponse(BaseModel):
     can_invite: bool = False
     can_lock_list: bool = False
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class MyLobbiesResponse(BaseModel):

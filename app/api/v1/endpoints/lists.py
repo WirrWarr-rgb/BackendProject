@@ -15,6 +15,10 @@ from app.schemas.common import PaginationParams
 from app.schemas.list import ListPaginatedResponse
 from sqlalchemy import func, desc, asc
 from datetime import datetime
+from typing import Annotated
+from fastapi_filter import FilterDepends
+from fastapi_pagination import Page
+from app.filters.list_filters import ItemListFilter
 
 from app.api.v1.descriptions import (
     LIST_GET_DESCRIPTION,
@@ -37,42 +41,18 @@ async def create_list(
     return await service.create_list(current_user.id, list_data.name)
 
 
-@router.get("/", response_model=List[ListResponse], description=LIST_GET_DESCRIPTION)
+@router.get("/", response_model=Page[ListResponse])
 async def get_my_lists(
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    page: int = 1,
-    per_page: int = 20,
-    sort_by: str = "created_at",
-    order: str = "desc",
-    search: str = None,
-    created_after: str = None,
-    created_before: str = None
+    db: Annotated[AsyncSession, Depends(get_db)],
+    current_user: Annotated[User, Depends(get_current_user)],
+    filter: Annotated[ItemListFilter, FilterDepends(ItemListFilter)],
 ):
-    """Получить списки с пагинацией, сортировкой и фильтрацией."""
+    """Получить списки с пагинацией и фильтрацией."""
     service = ListService(db)
     
-    # Админ видит все, пользователь — свои
-    if current_user.role.value == "admin":
-        user_id = None
-    else:
-        user_id = current_user.id
+    user_id = None if current_user.role.value == "admin" else current_user.id
     
-    # Конвертируем строковые даты в datetime
-    from datetime import datetime
-    ca = datetime.fromisoformat(created_after) if created_after else None
-    cb = datetime.fromisoformat(created_before) if created_before else None
-    
-    return await service.get_user_lists(
-        user_id=user_id,
-        page=page,
-        per_page=min(per_page, 100),  # Ограничение
-        sort_by=sort_by,
-        order=order,
-        search=search,
-        created_after=ca,
-        created_before=cb
-    )
+    return await service.get_user_lists_paginated(user_id=user_id, filter=filter)
 
 
 @router.get("/{list_id}", response_model=ListResponse)

@@ -5,6 +5,7 @@ from datetime import datetime
 
 T = TypeVar('T')
 
+
 class PaginationParams(BaseModel):
     """Общие параметры пагинации, сортировки и фильтрации"""
     page: int = Field(1, ge=1, description="Номер страницы (начиная с 1)")
@@ -14,6 +15,7 @@ class PaginationParams(BaseModel):
     search: Optional[str] = Field(None, description="Поисковый запрос")
     created_after: Optional[datetime] = Field(None, description="Созданы после этой даты")
     created_before: Optional[datetime] = Field(None, description="Созданы до этой даты")
+
 
 class PaginatedResponse(BaseModel, Generic[T]):
     """Обёртка для пагинированных ответов"""

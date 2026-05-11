@@ -1,5 +1,5 @@
 # app/schemas/user.py
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from typing import Optional
 from enum import Enum
 
@@ -18,22 +18,21 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
-    role: UserRoleEnum = UserRoleEnum.USER  # По умолчанию USER, админ может указать другую
+    role: UserRoleEnum = UserRoleEnum.USER
 
 
 class UserUpdate(BaseModel):
     username: Optional[str] = Field(None, min_length=3, max_length=50)
     email: Optional[EmailStr] = None
-    role: Optional[UserRoleEnum] = None  # Только админ может менять роль
+    role: Optional[UserRoleEnum] = None
 
 
 class UserResponse(UserBase):
     id: int
-    role: UserRoleEnum  # <-- ДОБАВЛЯЕМ роль в ответ
+    role: UserRoleEnum
     is_active: bool
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class Token(BaseModel):
@@ -43,4 +42,4 @@ class Token(BaseModel):
 
 class TokenData(BaseModel):
     email: str | None = None
-    role: UserRoleEnum | None = None  # <-- ДОБАВЛЯЕМ роль в токен
+    role: UserRoleEnum | None = None
