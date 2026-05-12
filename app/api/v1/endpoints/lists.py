@@ -286,7 +286,7 @@ async def copy_list(
 # ============= AI-генерация списка =============
 
 @router.post("/generate", response_model=ListGenerateResponse,
-    summary="Сгенерировать список через AI",
+    summary="Generate List With AI",
     description="""
     Запускает асинхронную генерацию списка через LLM (OpenRouter).
     
@@ -336,7 +336,7 @@ async def generate_list(
 
 
 @router.get("/generate/{task_id}/status", response_model=TaskStatusResponse,
-    summary="Проверить статус генерации списка")
+    summary="Check List Generation Status")
 async def check_generation_status(
     task_id: int,
     db: Annotated[AsyncSession, Depends(get_db)],

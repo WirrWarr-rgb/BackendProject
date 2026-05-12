@@ -13,7 +13,7 @@ from app.models.session import (
 )
 from app.models.user import User
 from app.services.session_list_service import SessionListService
-
+from sqlalchemy import select
 
 class SessionService:
     """Сервис для управления лобби"""
@@ -867,3 +867,53 @@ class SessionService:
             "invitations": [await self.get_lobby(s.id, user_id) for s in invitations],
             "history": [await self.get_lobby(s.id, user_id) for s in history]
         }
+    
+    async def invite_friends(self, session_id: int, owner_id: int, friend_ids: list[int]) -> list[SessionParticipant]:
+        """Пригласить друзей в лобби (только владелец)."""
+        session = await self._get_session(session_id)
+        
+        if session.owner_id != owner_id:
+            raise ValueError("Only owner can invite friends")
+        
+        if session.status not in [SessionStatus.WAITING, SessionStatus.EDITING, SessionStatus.READY]:
+            raise ValueError("Cannot invite in current status")
+        
+        participants = []
+        for friend_id in friend_ids:
+            # Проверяем, есть ли уже запись
+            existing = await self.db.execute(
+                select(SessionParticipant).where(
+                    SessionParticipant.session_id == session_id,
+                    SessionParticipant.user_id == friend_id
+                )
+            )
+            participant = existing.scalar_one_or_none()
+            
+            if participant:
+                # Если отказался или вышел — меняем статус обратно на INVITED
+                if participant.status in [ParticipantStatus.DECLINED, ParticipantStatus.LEFT, ParticipantStatus.KICKED]:
+                    participant.status = ParticipantStatus.INVITED
+                    participant.invited_by = owner_id
+                    participant.joined_at = None
+                    participant.ready_at = None
+                    participant.has_voted = False
+                    participant.has_spun = False
+                    participant.vote_data = None
+                    participants.append(participant)
+            else:
+                # Новый участник
+                participant = SessionParticipant(
+                    session_id=session_id,
+                    user_id=friend_id,
+                    status=ParticipantStatus.INVITED,
+                    invited_by=owner_id
+                )
+                self.db.add(participant)
+                participants.append(participant)
+        
+        await self.db.commit()
+        
+        for p in participants:
+            await self.db.refresh(p)
+        
+        return participants

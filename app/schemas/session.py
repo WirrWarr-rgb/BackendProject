@@ -115,10 +115,14 @@ class SessionListItemUpdate(BaseModel):
     description: Optional[str] = None
     image_url: Optional[str] = None
 
+class ItemOrderItem(BaseModel):
+    """Элемент для обновления порядка"""
+    id: int = Field(..., description="ID пункта")
+    order_index: int = Field(..., description="Новый порядковый номер (0, 1, 2, ...)")
 
 class ItemsOrderUpdate(BaseModel):
     """Обновление порядка пунктов"""
-    items: List[Dict[str, int]]
+    items: List[ItemOrderItem]
 
 
 # ============= Response Schemas =============

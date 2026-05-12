@@ -290,7 +290,9 @@ async def update_item(
     list_service = SessionListService(db)
     try:
         item = await list_service.update_item(
-            session_id, item_id, request.name, request.description, request.image_url
+            session_id, item_id, 
+            request.name, request.description, request.image_url,
+            user_id=current_user.id
         )
         creator_name = await list_service.get_creator_name(item)
         await manager.broadcast_to_session(
@@ -331,8 +333,7 @@ async def delete_item(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-
-@router.put("/{session_id}/list/items/order")
+@router.put("/{session_id}/list/order")
 async def update_order(
     session_id: int,
     request: ItemsOrderUpdate,
@@ -359,6 +360,8 @@ async def update_order(
         return {"success": True}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+
 
 
 # ============= Готовность и старт =============

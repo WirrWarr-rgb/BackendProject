@@ -156,7 +156,8 @@ class SessionListService:
         item_id: int,
         name: Optional[str] = None,
         description: Optional[str] = None,
-        image_url: Optional[str] = None
+        image_url: Optional[str] = None,
+        user_id: int = None,
     ) -> SessionListItem:
         """Обновить пункт"""
         
@@ -176,6 +177,17 @@ class SessionListService:
         
         if not item:
             raise ValueError("Item not found")
+        
+        # ===== ДОБАВИТЬ ПРОВЕРКУ БЛОКИРОВКИ =====
+        if item.edited_by is not None and item.edited_by != user_id:
+            if item.edited_at:
+                from datetime import datetime, timezone
+                elapsed = (datetime.now(timezone.utc) - item.edited_at).total_seconds()
+                if elapsed < 30:  # Блокировка на 30 секунд
+                    editor = await self.db.get(User, item.edited_by)
+                    editor_name = editor.username if editor else "Unknown"
+                    raise ValueError(f"Участник {editor_name} уже редактирует этот элемент")
+        # =========================================
         
         if name is not None:
             item.name = name
@@ -224,10 +236,13 @@ class SessionListService:
             raise ValueError("List is locked")
         
         for item_data in items_order:
+            item_id = item_data.id if hasattr(item_data, 'id') else item_data["id"]
+            order = item_data.order_index if hasattr(item_data, 'order_index') else item_data["order_index"]
+            
             await self.db.execute(
                 update(SessionListItem)
-                .where(SessionListItem.id == item_data["id"])
-                .values(order_index=item_data["order_index"])
+                .where(SessionListItem.id == item_id)
+                .values(order_index=order)
             )
         
         await self.db.commit()
