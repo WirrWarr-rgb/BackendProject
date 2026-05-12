@@ -1,4 +1,3 @@
-# tests/test_value_objects.py
 import pytest
 from app.models.value_objects import VotingDuration
 

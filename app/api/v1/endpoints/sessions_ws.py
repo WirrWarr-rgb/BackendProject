@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/sessions_ws.py
 import json
 from typing import Optional
 

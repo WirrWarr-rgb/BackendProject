@@ -1,4 +1,3 @@
-# app/tasks/session_tasks.py (обновлённая версия)
 import asyncio
 from celery import Celery
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession

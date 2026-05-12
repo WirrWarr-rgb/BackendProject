@@ -1,4 +1,3 @@
-# app/services/session_service.py
 import random
 from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any, Tuple
@@ -29,8 +28,8 @@ class SessionService:
         self,
         owner_id: int,
         friend_ids: List[int],
-        list_name: str,             # <-- название списка
-        list_items: List[Dict],     # <-- пункты списка
+        list_name: str,
+        list_items: List[Dict],
         mode: SessionMode = SessionMode.RANKING,
         voting_duration: int = 120
     ) -> Session:
@@ -45,7 +44,7 @@ class SessionService:
         self.db.add(session)
         await self.db.flush()
         
-        # Создаём список из переданных данных (не из БД!)
+        # Создаём список из переданных данных
         session_list = await self.list_service.create_list_from_data(
             session.id, list_name, list_items, set_active=True
         )
@@ -268,7 +267,7 @@ class SessionService:
         
         new_ends_at = now + timedelta(seconds=target_seconds)
         
-        # Таймер может только уменьшаться!
+        # Таймер может только уменьшаться
         if session.countdown_ends_at is None or new_ends_at < session.countdown_ends_at:
             session.countdown_ends_at = new_ends_at
             session.status = SessionStatus.READY

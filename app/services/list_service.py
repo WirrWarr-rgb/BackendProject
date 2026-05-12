@@ -1,4 +1,3 @@
-# app/services/list_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from typing import List, Optional, Dict

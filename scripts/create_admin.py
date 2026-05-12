@@ -1,4 +1,3 @@
-# scripts/create_admin.py
 import asyncio
 from app.core.database import AsyncSessionLocal
 from app.models.user import User, UserRole

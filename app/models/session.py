@@ -1,4 +1,3 @@
-# app/models/session.py
 from sqlalchemy import (
     Column, Integer, String, ForeignKey, DateTime, 
     Enum, JSON, Boolean, Text

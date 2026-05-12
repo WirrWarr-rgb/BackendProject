@@ -1,4 +1,3 @@
-# app/schemas/session.py
 from pydantic import BaseModel, Field, field_validator
 from datetime import datetime
 from typing import Optional, List, Dict, Any
@@ -171,7 +170,7 @@ class LobbyResponse(BaseModel):
     list_locked: bool
     current_list: Optional[SessionListResponse] = None
     participants: List[ParticipantResponse]
-    voting_duration: int
+    voting_duration: Optional[Dict[str, Any]] = None
     created_at: datetime
     voting_ends_at: Optional[datetime] = None
     results: Optional[Dict[str, Any]] = None

@@ -1,4 +1,3 @@
-# app/schemas/list.py
 from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, List, Generic, TypeVar
 from datetime import datetime

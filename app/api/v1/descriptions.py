@@ -1,4 +1,3 @@
-# app/api/v1/descriptions.py
 """
 Описания для API эндпоинтов (отображаются в Swagger UI)
 """

@@ -1,4 +1,3 @@
-# app/main.py
 from fastapi import FastAPI, WebSocket
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination

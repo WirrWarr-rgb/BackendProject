@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/sessions.py
 from typing import Annotated, List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession

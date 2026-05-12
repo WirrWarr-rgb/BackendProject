@@ -1,4 +1,3 @@
-# app/api/v1/endpoints/auth.py
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials

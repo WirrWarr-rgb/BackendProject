@@ -1,4 +1,3 @@
-# app/services/auth_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.user import User, UserRole
@@ -17,7 +16,7 @@ class AuthService:
         username: str, 
         email: str, 
         password: str,
-        role: UserRole = UserRole.USER  # <-- ДОБАВЛЯЕМ параметр роли
+        role: UserRole = UserRole.USER
     ) -> dict:
         """
         Регистрация нового пользователя.
@@ -43,19 +42,12 @@ class AuthService:
             username=username,
             email=email,
             hashed_password=hashed_password,
-            role=role  # <-- УСТАНАВЛИВАЕМ роль
+            role=role
         )
         
         self.db.add(new_user)
         await self.db.commit()
         await self.db.refresh(new_user)
-        
-        # Отправляем приветственное письмо (в фоне, не блокируем ответ)
-        email_service = EmailService()
-        try:
-            await email_service.send_welcome_email(new_user.email, new_user.username)
-        except Exception as e:
-            print(f"Failed to send welcome email: {e}")  # Не роняем регистрацию из-за ошибки email
 
         # Создаем токен с ролью
         access_token = create_access_token(
@@ -82,7 +74,7 @@ class AuthService:
         access_token = create_access_token(
             data={
                 "sub": user.email,
-                "role": user.role.value  # <-- ДОБАВЛЯЕМ роль в токен
+                "role": user.role.value
             }
         )
         return {"access_token": access_token, "token_type": "bearer"}

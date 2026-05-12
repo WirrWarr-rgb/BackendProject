@@ -1,4 +1,3 @@
-# app/core/permissions.py
 from fastapi import Depends, HTTPException, status
 from app.models.user import User, UserRole
 from app.api.v1.endpoints.auth import get_current_user

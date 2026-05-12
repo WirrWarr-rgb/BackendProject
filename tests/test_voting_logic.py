@@ -1,4 +1,3 @@
-# tests/test_voting_logic.py
 import pytest
 import asyncio
 from unittest.mock import AsyncMock, MagicMock

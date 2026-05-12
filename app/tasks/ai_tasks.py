@@ -1,4 +1,3 @@
-# app/tasks/ai_tasks.py
 import asyncio
 from celery import Celery
 from app.core.config import settings

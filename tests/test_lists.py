@@ -1,4 +1,3 @@
-# tests/test_lists.py
 import pytest
 from sqlalchemy import select
 from app.models.list import ItemList, ListItem

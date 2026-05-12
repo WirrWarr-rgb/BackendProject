@@ -1,4 +1,3 @@
-# app/services/email_service.py
 import aiosmtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart

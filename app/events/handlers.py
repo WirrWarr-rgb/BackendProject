@@ -1,4 +1,3 @@
-# app/events/handlers.py
 """
 Обработчики событий SQLAlchemy.
 

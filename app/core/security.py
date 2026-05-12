@@ -1,5 +1,3 @@
-# Модели SQLAlchemy
-
 import bcrypt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
@@ -13,11 +11,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     plain_password_bytes = plain_password.encode('utf-8')[:72]
     return bcrypt.checkpw(plain_password_bytes, hashed_password.encode('utf-8'))
 
-#def verify_password(plain_password: str, hashed_password: str) -> bool:
-#    """Проверка пароля."""
-#    return pwd_context.verify(plain_password, hashed_password)
-#
-
 # Полностью отключаем использование passlib и используем прямой bcrypt
 def get_password_hash(password: str) -> str:
     """Хэширование пароля с помощью bcrypt"""
@@ -25,10 +18,6 @@ def get_password_hash(password: str) -> str:
     password_bytes = password.encode('utf-8')[:72]
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password_bytes, salt).decode('utf-8')
-
-#def get_password_hash(password: str) -> str:
-#    #"""Хеширование пароля."""
-#    #return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """Создание JWT токена."""

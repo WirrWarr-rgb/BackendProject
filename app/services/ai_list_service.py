@@ -1,4 +1,3 @@
-# app/services/ai_list_service.py
 import json
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession

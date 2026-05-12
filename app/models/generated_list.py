@@ -1,4 +1,3 @@
-# app/models/generated_list.py
 from sqlalchemy import Column, Integer, String, DateTime, Enum, ForeignKey, Boolean
 from sqlalchemy.sql import func
 from app.core.database import Base

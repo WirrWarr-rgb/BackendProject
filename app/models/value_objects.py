@@ -1,4 +1,3 @@
-# app/models/value_objects.py
 """
 Value Objects для проекта.
 Value Object - объект без собственного ID, определяемый значениями полей.

@@ -1,4 +1,3 @@
-# app/tasks/email_tasks.py
 from celery import Celery
 from app.services.email_service import EmailService
 

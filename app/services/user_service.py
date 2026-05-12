@@ -1,4 +1,3 @@
-# app/services/user_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -26,7 +25,7 @@ class UserService:
         self, 
         user_id: int, 
         user_data: UserUpdate,
-        current_user: User  # <-- ДОБАВЛЯЕМ текущего пользователя
+        current_user: User
     ) -> User:
         """
         Обновить профиль пользователя.

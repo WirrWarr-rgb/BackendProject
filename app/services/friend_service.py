@@ -1,4 +1,3 @@
-# app/services/friend_service.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, or_
 from typing import List
@@ -21,7 +20,7 @@ class FriendService:
         result = await self.db.execute(
             select(User).where(User.id == to_user_id)
         )
-        friend = result.scalar_one_or_none()
+        friend = result.first()
         if not friend:
             raise ValueError("User not found")
         

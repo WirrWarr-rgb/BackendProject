@@ -1,12 +1,10 @@
-# Подключение к БД
-
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import declarative_base, sessionmaker
 from app.core.config import settings
 
 engine = create_async_engine(
     settings.DATABASE_URL,
-    echo=True,  # Для отладки, показывает SQL-запросы в консоли
+    echo=True,
     future=True
 )
 
