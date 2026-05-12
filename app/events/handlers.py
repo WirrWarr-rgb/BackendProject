@@ -24,7 +24,7 @@ from app.models.friend import Friend, FriendStatus
 # ============================================================
 
 @event.listens_for(User, 'after_insert')
-def on_user_registered(mapper, connection, target: User):
+async def on_user_registered(mapper, connection, target: User):
     """
     Событие: пользователь зарегистрирован.
     
@@ -42,14 +42,19 @@ def on_user_registered(mapper, connection, target: User):
 ╚══════════════════════════════════════════╝
     """)
     
-    # Отправка приветственного письма через Celery
+    # Отправка приветственного письма
     try:
+        import asyncio
         from app.tasks.email_tasks import send_welcome_email_task
-        # Запускаем задачу асинхронно
-        send_welcome_email_task.delay(target.email, target.username)
-        print(f"   📧 Задача на отправку welcome email создана")
+        
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            asyncio.create_task(send_welcome_email_task.kiq(target.email, target.username))
+            print(f"   📧 Задача на отправку welcome email создана (TaskIQ)")
+        else:
+            print(f"   ⚠️ Event loop не запущен")
     except ImportError:
-        print(f"   ⚠️ Celery не настроен, пропускаем отправку email")
+        print(f"   ⚠️ TaskIQ не настроен, пропускаем отправку email")
     except Exception as e:
         print(f"   ❌ Ошибка при создании задачи: {e}")
 

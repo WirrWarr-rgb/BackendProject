@@ -9,6 +9,26 @@ from app.api.v1.endpoints.sessions_ws import sessions_websocket
 from app.api.v1.endpoints.global_ws import global_websocket
 from app.events.registry import init_events
 
+from contextlib import asynccontextmanager
+from app.task_queue import broker
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    if not broker.is_worker_process:
+        await broker.startup()
+    yield
+    # Shutdown
+    if not broker.is_worker_process:
+        await broker.shutdown()
+
+
+app = FastAPI(
+    title="Decido API",
+    version="1.0.0",
+    lifespan=lifespan,
+)
+
 init_events()
 
 app = FastAPI(

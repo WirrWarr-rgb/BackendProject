@@ -326,13 +326,7 @@ async def generate_list(
             items_count=request.items_count
         )
         
-        # Отправляем в Celery очередь
-        generate_list_task.delay(
-            task_id=task.id,
-            user_id=current_user.id,
-            prompt=request.prompt,
-            items_count=request.items_count
-        )
+        await generate_list_task.kiq(task_id=task.id, user_id=current_user.id, prompt=request.prompt, items_count=request.items_count)
         
         return ListGenerateResponse(
             status="processing",

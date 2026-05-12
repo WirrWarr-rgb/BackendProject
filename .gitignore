@@ -37,10 +37,6 @@ htmlcov/
 *.log
 logs/
 
-# Celery
-celerybeat-schedule
-celerybeat.pid
-
 # Redis dump
 dump.rdb
 
