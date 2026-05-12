@@ -320,20 +320,47 @@ class ListService:
         return result.scalars().all()
     
     async def search_list_items(
-        self,
-        list_id: int,
-        user_id: int,
-        query: str,
-        limit: int = 20
-    ) -> List[ListItem]:
-        """Поиск пунктов в списке по названию"""
-        await self.get_list_by_id(list_id, user_id)
+            self,
+            list_id: int,
+            user_id: int,
+            query: str,
+            limit: int = 20
+        ) -> List[ListItem]:
+            """Поиск пунктов в списке по названию"""
+            await self.get_list_by_id(list_id, user_id)
+            
+            result = await self.db.execute(
+                select(ListItem)
+                .where(ListItem.list_id == list_id)
+                .where(ListItem.name.ilike(f"%{query}%"))
+                .limit(limit)
+                .order_by(ListItem.order_index)
+            )
+            return result.scalars().all()
+    
+    async def update_list_admin(self, list_id: int, name: Optional[str] = None) -> ItemList:
+        """Обновить список (для админа, без проверки прав)."""
+        result = await self.db.execute(select(ItemList).where(ItemList.id == list_id))
+        list_item = result.scalar_one_or_none()
         
-        result = await self.db.execute(
-            select(ListItem)
-            .where(ListItem.list_id == list_id)
-            .where(ListItem.name.ilike(f"%{query}%"))
-            .limit(limit)
-            .order_by(ListItem.order_index)
-        )
-        return result.scalars().all()
+        if not list_item:
+            raise ValueError("List not found")
+        
+        if name is not None:
+            list_item.name = name
+        
+        await self.db.commit()
+        await self.db.refresh(list_item)
+        return list_item
+
+
+    async def delete_list_admin(self, list_id: int) -> None:
+        """Удалить список (для админа, без проверки прав)."""
+        result = await self.db.execute(select(ItemList).where(ItemList.id == list_id))
+        list_item = result.scalar_one_or_none()
+        
+        if not list_item:
+            raise ValueError("List not found")
+        
+        await self.db.delete(list_item)
+        await self.db.commit()

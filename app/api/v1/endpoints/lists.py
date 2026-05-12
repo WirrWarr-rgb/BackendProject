@@ -85,7 +85,11 @@ async def update_list(
     """Обновить список."""
     service = ListService(db)
     try:
-        return await service.update_list(list_id, current_user.id, list_data.name)
+        # Админ может редактировать любой список
+        if current_user.role.value == "admin":
+            return await service.update_list_admin(list_id, list_data.name)
+        else:
+            return await service.update_list(list_id, current_user.id, list_data.name)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN if "permissions" in str(e).lower() 
@@ -103,7 +107,11 @@ async def delete_list(
     """Удалить список (и все его пункты)."""
     service = ListService(db)
     try:
-        await service.delete_list(list_id, current_user.id)
+        # Админ может удалить любой список
+        if current_user.role.value == "admin":
+            await service.delete_list_admin(list_id)
+        else:
+            await service.delete_list(list_id, current_user.id)
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN if "permissions" in str(e).lower() 
